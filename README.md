@@ -34,8 +34,12 @@ cd mysql-csv-exporter
 ### 2. Install Dependencies
 
 ```bash
-# Install PHP dependencies
+# Install PHP dependencies (if composer.json exists)
 composer install
+
+# If composer is not installed, install it first:
+# curl -sS https://getcomposer.org/installer | php
+# sudo mv composer.phar /usr/local/bin/composer
 ```
 
 ### 3. Configure Environment Variables
@@ -76,15 +80,19 @@ php make_hash.php MySecurePassword123!
 
 Copy the generated hash and set it as `APP_PASS_HASH` in your `.env` file.
 
+**Note:** Keep your original password secure as you'll need it to log in to the application.
+
 ### 5. Set File Permissions
 
 ```bash
 # Ensure web server can read the files
 chmod 644 *.php
-chmod 644 .env
 
-# Ensure .env file is not publicly accessible
+# Ensure .env file is secure and not publicly accessible
 chmod 600 .env
+
+# Make the hash generator executable
+chmod +x make_hash.php
 ```
 
 ### 6. Configure Web Server
@@ -114,9 +122,10 @@ location ~ /\.env {
 
 # PHP processing
 location ~ \.php$ {
-    fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+    fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;  # Adjust PHP version as needed
     fastcgi_index index.php;
     include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
 }
 ```
 
@@ -208,6 +217,7 @@ The application uses the following session settings:
 - Verify `APP_USER` and `APP_PASS_HASH` in `.env`
 - Regenerate password hash using `make_hash.php`
 - Check for extra spaces or special characters in credentials
+- Ensure you're using the original password (not the hash) to log in
 
 #### 3. Database Connection Failed
 - Verify MySQL server is running
