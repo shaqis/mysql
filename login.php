@@ -1,4 +1,19 @@
 <?php
+// Secure session initialization with strict mode and cookie flags
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.use_strict_mode', 1);
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Strict'
+    ]);
+    session_start();
+}
+
 session_start();
 // Generate CSRF token if not set
 if (empty($_SESSION['csrf_token'])) {
@@ -12,19 +27,56 @@ $dotenv->load();
 $valid_user = $_ENV['APP_USER'] ?? '';
 $valid_hash = $_ENV['APP_PASS_HASH'] ?? '';
 
+// Basic rate limiting (session-based)
+$maxAttempts = 10;       // allow 10 attempts
+$windowSeconds = 900;    // per 15 minutes
+$now = time();
+if (!isset($_SESSION['first_attempt_time']) || ($now - ($_SESSION['first_attempt_time'])) > $windowSeconds) {
+    $_SESSION['first_attempt_time'] = $now;
+    $_SESSION['login_attempts'] = 0;
+}
+if (!isset($_SESSION['login_attempts'])) {
+    $_SESSION['login_attempts'] = 0;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Enforce rate limit
+    if ($_SESSION['login_attempts'] >= $maxAttempts) {
+        // Optional: add small delay to slow automated attacks
+        usleep(500000); // 0.5s
+        header('Location: index.php?error=1');
+        exit;
+    }
+
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
     $csrf_token = $_POST['csrf_token'] ?? '';
+
     if (!hash_equals($_SESSION['csrf_token'], $csrf_token)) {
         header('Location: index.php?error=csrf');
         exit;
     }
-    if (hash_equals($valid_user, $username) && password_verify($password, $valid_hash)) {
+
+    if (hash_equals($valid_user, $username) && $valid_hash !== '' && password_verify($password, $valid_hash)) {
+        // Successful login
+        session_regenerate_id(true); // mitigate fixation
         $_SESSION['logged_in'] = true;
+        $_SESSION['login_time'] = time();
+        // Bind session to user agent fingerprint
+        $_SESSION['fingerprint'] = hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? '');
+        // Reset rate limiting counters
+        $_SESSION['login_attempts'] = 0;
+        $_SESSION['first_attempt_time'] = $now;
+        // (Optional) Check if hash needs rehash (cannot persist automatically since stored in env)
+        if (password_needs_rehash($valid_hash, PASSWORD_DEFAULT)) {
+            error_log('Password hash algorithm outdated. Regenerate APP_PASS_HASH.');
+        }
         header('Location: export.php');
         exit;
     } else {
+        // Failed attempt
+        $_SESSION['login_attempts']++;
+        // Generic error to avoid user enumeration
         header('Location: index.php?error=1');
         exit;
     }
