@@ -33,6 +33,14 @@ $dotenv->load();
 $valid_user = $_ENV['APP_USER'] ?? '';
 $valid_hash = $_ENV['APP_PASS_HASH'] ?? '';
 
+// Ensure APP_PASS_HASH is a valid bcrypt hash (starts with $2y$ or $2a$)
+if (!preg_match('/^\$2[ayb]\$/', $valid_hash)) {
+    error_log('APP_PASS_HASH is not a valid bcrypt hash. Please set APP_PASS_HASH to the output of password_hash().');
+    http_response_code(500);
+    echo "Server misconfiguration: password hash invalid.";
+    exit;
+}
+
 // Basic rate limiting (session-based)
 $maxAttempts = 10;       // allow 10 attempts
 $windowSeconds = 900;    // per 15 minutes
@@ -87,6 +95,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: export.php');
         exit;
     } else {
+        // Log failed password verification for diagnostics
+        if (hash_equals($valid_user, $username) && $valid_hash !== '' && !password_verify($password, $valid_hash)) {
+            error_log('Password verification failed for user: ' . $username);
+        }
         // Failed attempt
         $_SESSION['login_attempts']++;
         // Generic error to avoid user enumeration
