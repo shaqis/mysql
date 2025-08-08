@@ -1,4 +1,11 @@
 <?php
+// Enforce PHP version 8.1 or above
+if (version_compare(PHP_VERSION, '8.1.0', '<')) {
+    http_response_code(500);
+    echo "Error: PHP 8.1 or higher is required.";
+    exit;
+}
+
 // Secure session initialization with strict mode and cookie flags
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.use_strict_mode', 1);

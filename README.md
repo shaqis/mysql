@@ -1,5 +1,7 @@
 # MySQL to CSV Exporter with Secure Login
 
+> **All code in this project requires PHP 8.1 or higher.**
+
 A secure web application for exporting MySQL database tables to CSV format with authentication and comprehensive security features.
 
 ## 🚀 Features
@@ -13,7 +15,7 @@ A secure web application for exporting MySQL database tables to CSV format with 
 
 ## 📋 Prerequisites
 
-- PHP 7.4 or higher
+- PHP 8.1 or higher
 - MySQL/MariaDB database
 - Web server (Apache/Nginx)
 - Composer (for dependency management)

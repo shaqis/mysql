@@ -1,4 +1,9 @@
 <?php
+if (version_compare(PHP_VERSION, '8.1.0', '<')) {
+    http_response_code(500);
+    echo "Error: PHP 8.1 or higher is required.";
+    exit;
+}
 require_once __DIR__ . '/vendor/autoload.php';
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();

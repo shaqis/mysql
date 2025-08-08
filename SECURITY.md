@@ -1,5 +1,7 @@
 # Security Overview
 
+> **All code in this project requires PHP 8.1 or higher.**
+
 This document summarizes the current security controls and recommended practices for this MySQL-to-CSV export utility.
 
 ## Implemented Controls

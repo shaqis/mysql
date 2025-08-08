@@ -1,4 +1,9 @@
 <?php
+if (version_compare(PHP_VERSION, '8.1.0', '<')) {
+    http_response_code(500);
+    echo "Error: PHP 8.1 or higher is required.";
+    exit;
+}
 // Move headers before any output
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.use_strict_mode', 1);
