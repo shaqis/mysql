@@ -14,7 +14,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-session_start();
 // Generate CSRF token if not set
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -48,9 +47,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $username = $_POST['username'] ?? '';
+    // Input validation and sanitization
+    $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     $csrf_token = $_POST['csrf_token'] ?? '';
+
+    // Validate username and password types/lengths
+    if (!is_string($username) || !is_string($password) || strlen($username) > 64 || strlen($password) > 128) {
+        header('Location: index.php?error=1');
+        exit;
+    }
 
     if (!hash_equals($_SESSION['csrf_token'], $csrf_token)) {
         header('Location: index.php?error=csrf');

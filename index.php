@@ -1,3 +1,30 @@
+<?php
+// Move headers before any output
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.use_strict_mode', 1);
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Strict'
+    ]);
+    session_start();
+} else {
+    session_start();
+}
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+// Security headers
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
+header("Content-Security-Policy: default-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'none';");
+header('Referrer-Policy: no-referrer');
+header('Permissions-Policy: interest-cohort=()');
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,32 +38,6 @@
         button:hover { background: #0056b3; }
         .error { color: #d00; margin-bottom: 10px; }
     </style>
-    <?php
-    // Set simple security headers (cannot send after output)
-    header('X-Frame-Options: DENY');
-    header('X-Content-Type-Options: nosniff');
-    header("Content-Security-Policy: default-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'none';");
-    header('Referrer-Policy: no-referrer');
-    header('Permissions-Policy: interest-cohort=()');
-    if (session_status() === PHP_SESSION_NONE) {
-        ini_set('session.use_strict_mode', 1);
-        $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
-        session_set_cookie_params([
-            'lifetime' => 0,
-            'path' => '/',
-            'domain' => '',
-            'secure' => $secure,
-            'httponly' => true,
-            'samesite' => 'Strict'
-        ]);
-        session_start();
-    } else {
-        session_start();
-    }
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    ?>
 </head>
 <body>
 <div class="container">
@@ -44,10 +45,12 @@
     <?php if (isset($_GET['error'])): ?>
         <div class="error">
             <?php
-            if ($_GET['error'] === 'csrf') {
-                echo 'Invalid CSRF token.';
+            // Validate error parameter and encode output
+            $error = $_GET['error'];
+            if ($error === 'csrf') {
+                echo htmlspecialchars('Invalid CSRF token.', ENT_QUOTES, 'UTF-8');
             } else {
-                echo 'Invalid username or password.';
+                echo htmlspecialchars('Invalid username or password.', ENT_QUOTES, 'UTF-8');
             }
             ?>
         </div>

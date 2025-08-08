@@ -96,18 +96,20 @@ if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csr
 // One-time use token (optional)
 unset($_SESSION['csrf_token']);
 
+
+// Validate table name strictly
+if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
+    error_log('Invalid table name.');
+    echo htmlspecialchars('Invalid table name.', ENT_QUOTES, 'UTF-8');
+    exit;
+}
+
 try {
     if (empty($host) || empty($db) || empty($user) || empty($pass) || empty($table)) {
         error_log('Missing required environment variables for database connection or table name.');
-        echo 'Configuration error.';
+        echo htmlspecialchars('Configuration error.', ENT_QUOTES, 'UTF-8');
         exit;
     }
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
-        error_log('Invalid table name.');
-        echo 'Invalid table name.';
-        exit;
-    }
-
     $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
     $options = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -160,7 +162,7 @@ try {
     exit;
 } catch (PDOException $e) {
     error_log('Database error: ' . $e->getMessage());
-    echo 'An error occurred.';
+    echo htmlspecialchars('An error occurred.', ENT_QUOTES, 'UTF-8');
     exit;
 }
 ?>
